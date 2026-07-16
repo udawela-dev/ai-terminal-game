@@ -1,8 +1,24 @@
-# Treasure Hunter Quest
+# 🐉 Treasure Hunter Quest
 
-A terminal-based Python game where you explore a mysterious island, collect magical crystals, and avoid dangerous volcanoes — all from your command line.
+A terminal-based Python game where you explore a mysterious island, collect magical crystals, and dodge dangerous volcanoes — all from your command line.
 
 > *An ancient island is filled with hidden gems and dangerous traps. Collect 10 magical crystals before the island's curses catch you!*
+
+```
+┌──────┬──────┬──────┬──────┬──────┐
+│  🐉  │  ·   │  ·   │  ·   │  ·   │
+├──────┼──────┼──────┼──────┼──────┤
+│  ·   │  ·   │  ·   │  ·   │  ·   │
+├──────┼──────┼──────┼──────┼──────┤
+│  ·   │  ·   │  ·   │  📦  │  ·   │
+├──────┼──────┼──────┼──────┼──────┤
+│  ·   │  ·   │  ·   │  ·   │  ·   │
+├──────┼──────┼──────┼──────┼──────┤
+│  ·   │  ·   │  🌋  │  ·   │  ·   │
+└──────┴──────┴──────┴──────┴──────┘
+
+  Score: 0/10
+```
 
 ---
 
@@ -15,7 +31,7 @@ A terminal-based Python game where you explore a mysterious island, collect magi
 - **Lose Condition** — Step on a volcano and the island's guardian catches you
 - **Play Again** — After winning or losing, choose to restart or exit cleanly
 - **Boundary Protection** — Movement is clamped to the grid; you can't walk off the edge
-- **Themed Rendering** — Full emoji-based grid with a story-driven intro
+- **Box-Drawn Grid** — Clean Unicode borders with visible dot markers on empty cells
 
 ---
 
@@ -57,10 +73,17 @@ Writing 34 automated tests taught me how to isolate logic from presentation. Fun
 
 ```
 ai-terminal-game/
-├── game.py          # Main game file — grid, movement, spawning, game loop
+├── game.py          # Main game — grid rendering, movement, spawning, game loop
 ├── test_game.py     # 34 pytest tests covering all game functions
 └── README.md        # This file
 ```
+
+---
+
+## Built With
+
+- **Python 3.11** — No external dependencies, just the standard library
+- **pytest** — For automated testing
 
 ---
 
