@@ -2,12 +2,29 @@ import os
 import random
 
 # ============================================
-# Terminal Game - Basic 5x5 Grid
+# Treasure Hunter Quest
 # ============================================
 
 # --- Constants ---
 GRID_SIZE = 5
 WIN_SCORE = 10
+
+# --- Theme ---
+GAME_NAME = "Treasure Hunter Quest"
+STORY_INTRO = (
+    "An ancient island is filled with hidden gems and dangerous traps. "
+    "Collect 10 magical crystals before the island's curses catch you!"
+)
+PLAYER = "\U0001F409"        # 🐉
+COLLECTIBLE = "\U0001F4E6"   # 📦
+HAZARD = "\U0001F30B"        # 🌋
+WIN_MESSAGE = (
+    "You collected all 10 magical crystals and escaped the island "
+    "as a legendary Treasure Hunter!"
+)
+LOSE_MESSAGE = (
+    "The island's guardian caught you. Your treasure hunt has come to an end!"
+)
 
 
 def draw_grid(
@@ -21,23 +38,20 @@ def draw_grid(
 ) -> None:
     """Draw the grid with the player, collectible, and hazard on it.
 
-    '@' = player, '*' = collectible, 'X' = hazard, '.' = empty space.
+    Uses themed emojis for each entity on the grid.
     """
     for r in range(GRID_SIZE):
-        # Build one row at a time as a string
-        line = ""
+        cells = []
         for c in range(GRID_SIZE):
             if r == row and c == col:
-                line += " @"
+                cells.append(PLAYER)
             elif r == item_row and c == item_col:
-                line += " *"
+                cells.append(COLLECTIBLE)
             elif r == hazard_row and c == hazard_col:
-                line += " X"
+                cells.append(HAZARD)
             else:
-                line += " ."
-        # Print the finished row, then clear the line buffer so
-        # the next print starts fresh (no trailing whitespace)
-        print(line.rstrip())
+                cells.append("  ")  # two spaces for empty cell
+        print(" ".join(cells))
 
     # Show the score below the grid
     print(f"\nScore: {score}/{WIN_SCORE}")
@@ -99,8 +113,9 @@ def collect_item(
 
 # --- Main Game Loop ---
 if __name__ == "__main__":
-    print("Welcome to the Grid Game!")
-    print("You are the '@' symbol. Collect the '*' items!")
+    print(f"=== {GAME_NAME} ===\n")
+    print(f"{STORY_INTRO}\n")
+    print(f"You are the {PLAYER} symbol. Collect the {COLLECTIBLE} items!")
     print("WASD to move. Type 'quit' to exit.\n")
 
     playing = True
@@ -152,7 +167,7 @@ if __name__ == "__main__":
                     hazard_row, hazard_col,
                     score,
                 )
-                print("\nGame Over!")
+                print(f"\n{LOSE_MESSAGE}")
                 game_over = True
                 break
 
@@ -174,7 +189,7 @@ if __name__ == "__main__":
                     hazard_row, hazard_col,
                     score,
                 )
-                print("\nYou win! All items collected!")
+                print(f"\n{WIN_MESSAGE}")
                 game_over = True
                 break
 

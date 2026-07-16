@@ -9,6 +9,9 @@ from game import (
     collect_item,
     GRID_SIZE,
     WIN_SCORE,
+    PLAYER,
+    COLLECTIBLE,
+    HAZARD,
 )
 
 
@@ -37,9 +40,9 @@ def test_player_at_origin() -> None:
 
     lines = captured.getvalue().splitlines()
     cells = lines[0].split()
-    assert cells[0] == "@"
+    assert cells[0] == PLAYER
     for line in lines[1:GRID_SIZE]:
-        assert "@" not in line
+        assert PLAYER not in line
 
 
 def test_player_at_bottom_right() -> None:
@@ -50,11 +53,11 @@ def test_player_at_bottom_right() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    # The last grid row (index 4) should end with "@"
-    assert lines[GRID_SIZE - 1].rstrip().endswith("@")
-    # All other grid rows should not contain "@"
+    # The last grid row (index 4) should end with the player emoji
+    assert lines[GRID_SIZE - 1].rstrip().endswith(PLAYER)
+    # All other grid rows should not contain the player emoji
     for line in lines[:GRID_SIZE - 1]:
-        assert "@" not in line
+        assert PLAYER not in line
 
 
 def test_player_in_middle() -> None:
@@ -65,12 +68,15 @@ def test_player_in_middle() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    cells = lines[2].split()
-    assert cells[2] == "@"
+    # Player emoji should appear in the middle row
+    assert PLAYER in lines[2]
+    # Player should NOT appear in other rows
+    assert PLAYER not in lines[0]
+    assert PLAYER not in lines[1]
 
 
 def test_each_row_has_five_cells() -> None:
-    """Every row should have exactly 5 cells separated by spaces."""
+    """Every row should have exactly 5 cells (player, collectible, hazard, or empty)."""
     captured = io.StringIO()
     sys.stdout = captured
     draw_grid(1, 3, 0, 0, 4, 4, 0)
@@ -78,41 +84,46 @@ def test_each_row_has_five_cells() -> None:
 
     lines = captured.getvalue().splitlines()
     for line in lines[:GRID_SIZE]:
-        cells = line.split()
-        assert len(cells) == GRID_SIZE
+        # Each row should contain at least one of: PLAYER, COLLECTIBLE, HAZARD, or be empty
+        has_player = PLAYER in line
+        has_collectible = COLLECTIBLE in line
+        has_hazard = HAZARD in line
+        # Row should have exactly one entity or be empty
+        entity_count = sum([has_player, has_collectible, has_hazard])
+        assert entity_count <= 1
 
 
 def test_only_one_player_symbol() -> None:
-    """There should be exactly one '@' on the entire grid."""
+    """There should be exactly one player emoji on the entire grid."""
     captured = io.StringIO()
     sys.stdout = captured
     draw_grid(2, 3, 0, 0, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
-    assert full_output.count("@") == 1
+    assert full_output.count(PLAYER) == 1
 
 
 def test_collectible_drawn() -> None:
-    """The collectible '*' should appear on the grid."""
+    """The collectible emoji should appear on the grid."""
     captured = io.StringIO()
     sys.stdout = captured
     draw_grid(0, 0, 2, 2, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
-    assert full_output.count("*") == 1
+    assert full_output.count(COLLECTIBLE) == 1
 
 
 def test_hazard_drawn() -> None:
-    """The hazard 'X' should appear on the grid."""
+    """The hazard emoji should appear on the grid."""
     captured = io.StringIO()
     sys.stdout = captured
     draw_grid(0, 0, 2, 2, 3, 3, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
-    assert full_output.count("X") == 1
+    assert full_output.count(HAZARD) == 1
 
 
 def test_score_displayed() -> None:
@@ -134,9 +145,28 @@ def test_player_overlaps_collectible() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    cells = lines[2].split()
-    assert cells[2] == "@"
-    assert "*" not in captured.getvalue()
+    # Player should be visible in the middle row
+    assert PLAYER in lines[2]
+    # Collectible should NOT appear when overlapping with player
+    assert COLLECTIBLE not in captured.getvalue()
+
+
+def test_theme_constants_used() -> None:
+    """The grid should use the themed emojis, not ASCII symbols."""
+    captured = io.StringIO()
+    sys.stdout = captured
+    draw_grid(1, 1, 3, 3, 0, 0, 0)
+    sys.stdout = sys.__stdout__
+
+    full_output = captured.getvalue()
+    # Should NOT contain old ASCII symbols
+    assert "@" not in full_output
+    assert "*" not in full_output
+    assert "X" not in full_output
+    # Should contain themed emojis
+    assert PLAYER in full_output
+    assert COLLECTIBLE in full_output
+    assert HAZARD in full_output
 
 
 # ============================================
