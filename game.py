@@ -9,11 +9,6 @@ import random
 GRID_SIZE = 5
 WIN_SCORE = 10
 
-# --- Game State ---
-# The player starts at the top-left corner (row 0, column 0)
-player_row = 0
-player_col = 0
-
 
 def draw_grid(
     row: int,
@@ -108,62 +103,85 @@ if __name__ == "__main__":
     print("You are the '@' symbol. Collect the '*' items!")
     print("WASD to move. Type 'quit' to exit.\n")
 
-    score = 0
-    item_row, item_col = spawn_collectible(player_row, player_col)
-    hazard_row, hazard_col = spawn_hazard(
-        player_row, player_col, item_row, item_col
-    )
+    playing = True
 
-    while True:
-        # 1. Clear the screen so we get a clean redraw each turn
-        os.system("clear")
-
-        # 2. Draw the current state of the grid
-        draw_grid(
-            player_row, player_col,
-            item_row, item_col,
-            hazard_row, hazard_col,
-            score,
+    while playing:
+        # Reset all game state for a new round
+        player_row = 0
+        player_col = 0
+        score = 0
+        item_row, item_col = spawn_collectible(player_row, player_col)
+        hazard_row, hazard_col = spawn_hazard(
+            player_row, player_col, item_row, item_col
         )
 
-        # 3. Wait for the player to type something
-        user_input = input("\n> ").strip().lower()
+        game_over = False
 
-        # 4. Check if the player wants to quit
-        if user_input == "quit":
-            print("Thanks for playing!")
-            break
-
-        # 5. Process WASD movement with boundary checking
-        player_row, player_col = process_move(player_row, player_col, user_input)
-
-        # 6. Check if the player hit the hazard
-        if player_row == hazard_row and player_col == hazard_col:
+        while not game_over:
+            # 1. Clear the screen so we get a clean redraw each turn
             os.system("clear")
+
+            # 2. Draw the current state of the grid
             draw_grid(
                 player_row, player_col,
                 item_row, item_col,
                 hazard_row, hazard_col,
                 score,
             )
-            print("\nGame Over!")
-            break
 
-        # 7. Check if the player collected the item
-        score, collected, _ = collect_item(
-            player_row, player_col, item_row, item_col, score
-        )
-        if collected:
-            item_row, item_col = spawn_collectible(player_row, player_col)
+            # 3. Wait for the player to type something
+            user_input = input("\n> ").strip().lower()
 
-        # 8. Check win condition
-        if score >= WIN_SCORE:
-            os.system("clear")
-            draw_grid(
-                player_row, player_col,
-                item_row, item_col,
-                hazard_row, hazard_col,
-                score,
+            # 4. Check if the player wants to quit
+            if user_input == "quit":
+                playing = False
+                game_over = True
+                break
+
+            # 5. Process WASD movement with boundary checking
+            player_row, player_col = process_move(
+                player_row, player_col, user_input
             )
-            print("\nYou win! All items collected!")
-            break
+
+            # 6. Check if the player hit the hazard
+            if player_row == hazard_row and player_col == hazard_col:
+                os.system("clear")
+                draw_grid(
+                    player_row, player_col,
+                    item_row, item_col,
+                    hazard_row, hazard_col,
+                    score,
+                )
+                print("\nGame Over!")
+                game_over = True
+                break
+
+            # 7. Check if the player collected the item
+            score, collected, _ = collect_item(
+                player_row, player_col, item_row, item_col, score
+            )
+            if collected:
+                item_row, item_col = spawn_collectible(
+                    player_row, player_col
+                )
+
+            # 8. Check win condition
+            if score >= WIN_SCORE:
+                os.system("clear")
+                draw_grid(
+                    player_row, player_col,
+                    item_row, item_col,
+                    hazard_row, hazard_col,
+                    score,
+                )
+                print("\nYou win! All items collected!")
+                game_over = True
+                break
+
+        # After win/loss — prompt to play again
+        if playing:
+            answer = input("\nPlay again? (y/n) ").strip().lower()
+            if answer != "y":
+                playing = False
+
+    print("Thanks for playing!")
