@@ -5,6 +5,7 @@ from game import (
     draw_grid,
     process_move,
     spawn_collectible,
+    spawn_hazard,
     collect_item,
     GRID_SIZE,
     WIN_SCORE,
@@ -19,7 +20,7 @@ def test_grid_size() -> None:
     """The grid should be GRID_SIZE rows tall."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0, 3, 3, 0)
+    draw_grid(0, 0, 3, 3, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     # Grid lines + score line + blank line = GRID_SIZE + 2
@@ -31,7 +32,7 @@ def test_player_at_origin() -> None:
     """Player at (0,0) should appear in the top-left cell."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0, 3, 3, 0)
+    draw_grid(0, 0, 3, 3, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
@@ -45,7 +46,7 @@ def test_player_at_bottom_right() -> None:
     """Player at (4,4) should appear in the bottom-right cell."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(4, 4, 0, 0, 0)
+    draw_grid(4, 4, 0, 0, 2, 2, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
@@ -60,7 +61,7 @@ def test_player_in_middle() -> None:
     """Player at (2,2) should appear in the exact centre."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(2, 2, 0, 0, 0)
+    draw_grid(2, 2, 0, 0, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
@@ -72,7 +73,7 @@ def test_each_row_has_five_cells() -> None:
     """Every row should have exactly 5 cells separated by spaces."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(1, 3, 0, 0, 0)
+    draw_grid(1, 3, 0, 0, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
@@ -85,7 +86,7 @@ def test_only_one_player_symbol() -> None:
     """There should be exactly one '@' on the entire grid."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(2, 3, 0, 0, 0)
+    draw_grid(2, 3, 0, 0, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
@@ -96,18 +97,29 @@ def test_collectible_drawn() -> None:
     """The collectible '*' should appear on the grid."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0, 2, 2, 0)
+    draw_grid(0, 0, 2, 2, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
     assert full_output.count("*") == 1
 
 
+def test_hazard_drawn() -> None:
+    """The hazard 'X' should appear on the grid."""
+    captured = io.StringIO()
+    sys.stdout = captured
+    draw_grid(0, 0, 2, 2, 3, 3, 0)
+    sys.stdout = sys.__stdout__
+
+    full_output = captured.getvalue()
+    assert full_output.count("X") == 1
+
+
 def test_score_displayed() -> None:
     """The score should appear in the output."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0, 3, 3, 5)
+    draw_grid(0, 0, 3, 3, 4, 4, 5)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
@@ -118,13 +130,12 @@ def test_player_overlaps_collectible() -> None:
     """If player and collectible share a cell, player takes priority."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(2, 2, 2, 2, 0)
+    draw_grid(2, 2, 2, 2, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
     cells = lines[2].split()
     assert cells[2] == "@"
-    # Only one symbol total — no '*' visible
     assert "*" not in captured.getvalue()
 
 
@@ -219,7 +230,41 @@ def test_spawn_at_various_positions() -> None:
     for _ in range(200):
         row, col = spawn_collectible(4, 4)
         seen.add((row, col))
-    # With enough calls, most cells should have been reached
+    assert len(seen) > 1
+
+
+# ============================================
+# Tests for spawn_hazard()
+# ============================================
+
+def test_hazard_not_on_player() -> None:
+    """The hazard should never spawn on the player."""
+    for _ in range(50):
+        row, col = spawn_hazard(2, 2, 0, 0)
+        assert (row, col) != (2, 2)
+
+
+def test_hazard_not_on_collectible() -> None:
+    """The hazard should never spawn on the collectible."""
+    for _ in range(50):
+        row, col = spawn_hazard(0, 0, 3, 3)
+        assert (row, col) != (3, 3)
+
+
+def test_hazard_within_grid() -> None:
+    """The hazard should always be within grid bounds."""
+    for _ in range(50):
+        row, col = spawn_hazard(0, 0, 4, 4)
+        assert 0 <= row < GRID_SIZE
+        assert 0 <= col < GRID_SIZE
+
+
+def test_hazard_at_various_positions() -> None:
+    """Hazard spawn should reach different positions over many calls."""
+    seen = set()
+    for _ in range(200):
+        row, col = spawn_hazard(0, 0, 4, 4)
+        seen.add((row, col))
     assert len(seen) > 1
 
 

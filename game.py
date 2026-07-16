@@ -16,11 +16,17 @@ player_col = 0
 
 
 def draw_grid(
-    row: int, col: int, item_row: int, item_col: int, score: int
+    row: int,
+    col: int,
+    item_row: int,
+    item_col: int,
+    hazard_row: int,
+    hazard_col: int,
+    score: int,
 ) -> None:
-    """Draw the grid with the player and collectible on it.
+    """Draw the grid with the player, collectible, and hazard on it.
 
-    '@' = player, '*' = collectible, '.' = empty space.
+    '@' = player, '*' = collectible, 'X' = hazard, '.' = empty space.
     """
     for r in range(GRID_SIZE):
         # Build one row at a time as a string
@@ -30,6 +36,8 @@ def draw_grid(
                 line += " @"
             elif r == item_row and c == item_col:
                 line += " *"
+            elif r == hazard_row and c == hazard_col:
+                line += " X"
             else:
                 line += " ."
         # Print the finished row, then clear the line buffer so
@@ -66,6 +74,17 @@ def spawn_collectible(player_row: int, player_col: int) -> tuple[int, int]:
             return row, col
 
 
+def spawn_hazard(
+    player_row: int, player_col: int, item_row: int, item_col: int
+) -> tuple[int, int]:
+    """Pick a random grid position that is not the player or the collectible."""
+    while True:
+        row = random.randint(0, GRID_SIZE - 1)
+        col = random.randint(0, GRID_SIZE - 1)
+        if (row, col) != (player_row, player_col) and (row, col) != (item_row, item_col):
+            return row, col
+
+
 def collect_item(
     player_row: int,
     player_col: int,
@@ -91,13 +110,21 @@ if __name__ == "__main__":
 
     score = 0
     item_row, item_col = spawn_collectible(player_row, player_col)
+    hazard_row, hazard_col = spawn_hazard(
+        player_row, player_col, item_row, item_col
+    )
 
     while True:
         # 1. Clear the screen so we get a clean redraw each turn
         os.system("clear")
 
         # 2. Draw the current state of the grid
-        draw_grid(player_row, player_col, item_row, item_col, score)
+        draw_grid(
+            player_row, player_col,
+            item_row, item_col,
+            hazard_row, hazard_col,
+            score,
+        )
 
         # 3. Wait for the player to type something
         user_input = input("\n> ").strip().lower()
@@ -110,16 +137,33 @@ if __name__ == "__main__":
         # 5. Process WASD movement with boundary checking
         player_row, player_col = process_move(player_row, player_col, user_input)
 
-        # 6. Check if the player collected the item
+        # 6. Check if the player hit the hazard
+        if player_row == hazard_row and player_col == hazard_col:
+            os.system("clear")
+            draw_grid(
+                player_row, player_col,
+                item_row, item_col,
+                hazard_row, hazard_col,
+                score,
+            )
+            print("\nGame Over!")
+            break
+
+        # 7. Check if the player collected the item
         score, collected, _ = collect_item(
             player_row, player_col, item_row, item_col, score
         )
         if collected:
             item_row, item_col = spawn_collectible(player_row, player_col)
 
-        # 7. Check win condition
+        # 8. Check win condition
         if score >= WIN_SCORE:
             os.system("clear")
-            draw_grid(player_row, player_col, item_row, item_col, score)
+            draw_grid(
+                player_row, player_col,
+                item_row, item_col,
+                hazard_row, hazard_col,
+                score,
+            )
             print("\nYou win! All items collected!")
             break
