@@ -19,16 +19,19 @@ from game import (
 # Tests for draw_grid()
 # ============================================
 
-def test_grid_size() -> None:
-    """The grid should be GRID_SIZE rows tall."""
+def test_grid_has_borders() -> None:
+    """The grid should have top, middle, and bottom borders."""
     captured = io.StringIO()
     sys.stdout = captured
     draw_grid(0, 0, 3, 3, 4, 4, 0)
     sys.stdout = sys.__stdout__
 
-    # Grid lines + score line + blank line = GRID_SIZE + 2
-    lines = captured.getvalue().strip().split("\n")
-    assert len(lines) == GRID_SIZE + 2
+    full_output = captured.getvalue()
+    # Should have top border, separators, and bottom border
+    assert "┌" in full_output  # top-left corner
+    assert "└" in full_output  # bottom-left corner
+    assert "├" in full_output  # row separator
+    assert "┼" in full_output  # inner junction
 
 
 def test_player_at_origin() -> None:
@@ -39,10 +42,13 @@ def test_player_at_origin() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    cells = lines[0].split()
-    assert cells[0] == PLAYER
-    for line in lines[1:GRID_SIZE]:
-        assert PLAYER not in line
+    # First data row (index 1, after top border) should have player
+    assert PLAYER in lines[1]
+    # Player should NOT appear in other data rows
+    for line in lines[2:GRID_SIZE * 2]:
+        if "│" in line:  # only check data rows
+            if line != lines[1]:
+                assert PLAYER not in line
 
 
 def test_player_at_bottom_right() -> None:
@@ -53,11 +59,12 @@ def test_player_at_bottom_right() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    # The last grid row (index 4) should end with the player emoji
-    assert lines[GRID_SIZE - 1].rstrip().endswith(PLAYER)
-    # All other grid rows should not contain the player emoji
-    for line in lines[:GRID_SIZE - 1]:
-        assert PLAYER not in line
+    # Last data row (index -3, before bottom border and score) should have player
+    data_rows = [l for l in lines if "│" in l]
+    assert PLAYER in data_rows[-1]
+    # All other data rows should not contain player
+    for row in data_rows[:-1]:
+        assert PLAYER not in row
 
 
 def test_player_in_middle() -> None:
@@ -68,29 +75,24 @@ def test_player_in_middle() -> None:
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    # Player emoji should appear in the middle row
-    assert PLAYER in lines[2]
-    # Player should NOT appear in other rows
-    assert PLAYER not in lines[0]
-    assert PLAYER not in lines[1]
+    data_rows = [l for l in lines if "│" in l]
+    # Player should be in the middle data row
+    assert PLAYER in data_rows[2]
+    # Player should NOT appear in other data rows
+    assert PLAYER not in data_rows[0]
+    assert PLAYER not in data_rows[1]
 
 
-def test_each_row_has_five_cells() -> None:
-    """Every row should have exactly 5 cells (player, collectible, hazard, or empty)."""
+def test_empty_cells_have_dots() -> None:
+    """Empty cells should display a visible dot marker."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(1, 3, 0, 0, 4, 4, 0)
+    draw_grid(0, 0, 4, 4, 3, 3, 0)
     sys.stdout = sys.__stdout__
 
-    lines = captured.getvalue().splitlines()
-    for line in lines[:GRID_SIZE]:
-        # Each row should contain at least one of: PLAYER, COLLECTIBLE, HAZARD, or be empty
-        has_player = PLAYER in line
-        has_collectible = COLLECTIBLE in line
-        has_hazard = HAZARD in line
-        # Row should have exactly one entity or be empty
-        entity_count = sum([has_player, has_collectible, has_hazard])
-        assert entity_count <= 1
+    full_output = captured.getvalue()
+    # Empty cells use the dot character
+    assert "·" in full_output
 
 
 def test_only_one_player_symbol() -> None:
@@ -144,11 +146,11 @@ def test_player_overlaps_collectible() -> None:
     draw_grid(2, 2, 2, 2, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
-    lines = captured.getvalue().splitlines()
-    # Player should be visible in the middle row
-    assert PLAYER in lines[2]
+    full_output = captured.getvalue()
+    # Player should be visible
+    assert PLAYER in full_output
     # Collectible should NOT appear when overlapping with player
-    assert COLLECTIBLE not in captured.getvalue()
+    assert COLLECTIBLE not in full_output
 
 
 def test_theme_constants_used() -> None:

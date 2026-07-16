@@ -38,23 +38,33 @@ def draw_grid(
 ) -> None:
     """Draw the grid with the player, collectible, and hazard on it.
 
-    Uses themed emojis for each entity on the grid.
+    Uses a box-drawn border with themed emojis for each entity.
     """
+    # Top border
+    print("┌──────┬──────┬──────┬──────┬──────┐")
+
     for r in range(GRID_SIZE):
         cells = []
         for c in range(GRID_SIZE):
             if r == row and c == col:
-                cells.append(PLAYER)
+                cells.append(f"  {PLAYER}  ")
             elif r == item_row and c == item_col:
-                cells.append(COLLECTIBLE)
+                cells.append(f"  {COLLECTIBLE}  ")
             elif r == hazard_row and c == hazard_col:
-                cells.append(HAZARD)
+                cells.append(f"  {HAZARD}  ")
             else:
-                cells.append("  ")  # two spaces for empty cell
-        print(" ".join(cells))
+                cells.append("  ·   ")
+        print("│" + "│".join(cells) + "│")
+
+        # Row separator (except after last row)
+        if r < GRID_SIZE - 1:
+            print("├──────┼──────┼──────┼──────┼──────┤")
+
+    # Bottom border
+    print("└──────┴──────┴──────┴──────┴──────┘")
 
     # Show the score below the grid
-    print(f"\nScore: {score}/{WIN_SCORE}")
+    print(f"\n  Score: {score}/{WIN_SCORE}")
 
 
 def process_move(row: int, col: int, command: str) -> tuple[int, int]:
