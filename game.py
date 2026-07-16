@@ -1,4 +1,5 @@
 import os
+import random
 
 # ============================================
 # Terminal Game - Basic 5x5 Grid
@@ -6,6 +7,7 @@ import os
 
 # --- Constants ---
 GRID_SIZE = 5
+WIN_SCORE = 10
 
 # --- Game State ---
 # The player starts at the top-left corner (row 0, column 0)
@@ -13,12 +15,12 @@ player_row = 0
 player_col = 0
 
 
-def draw_grid(row: int, col: int) -> None:
-    """Draw the grid with the player on it.
+def draw_grid(
+    row: int, col: int, item_row: int, item_col: int, score: int
+) -> None:
+    """Draw the grid with the player and collectible on it.
 
-    This function loops through every cell in the grid.
-    If the current cell matches the player's position, we draw '@'.
-    Otherwise, we draw '.' to represent an empty space.
+    '@' = player, '*' = collectible, '.' = empty space.
     """
     for r in range(GRID_SIZE):
         # Build one row at a time as a string
@@ -26,11 +28,16 @@ def draw_grid(row: int, col: int) -> None:
         for c in range(GRID_SIZE):
             if r == row and c == col:
                 line += " @"
+            elif r == item_row and c == item_col:
+                line += " *"
             else:
                 line += " ."
         # Print the finished row, then clear the line buffer so
         # the next print starts fresh (no trailing whitespace)
         print(line.rstrip())
+
+    # Show the score below the grid
+    print(f"\nScore: {score}/{WIN_SCORE}")
 
 
 def process_move(row: int, col: int, command: str) -> tuple[int, int]:
@@ -50,18 +57,47 @@ def process_move(row: int, col: int, command: str) -> tuple[int, int]:
     return row, col
 
 
+def spawn_collectible(player_row: int, player_col: int) -> tuple[int, int]:
+    """Pick a random grid position that is not the player's position."""
+    while True:
+        row = random.randint(0, GRID_SIZE - 1)
+        col = random.randint(0, GRID_SIZE - 1)
+        if row != player_row or col != player_col:
+            return row, col
+
+
+def collect_item(
+    player_row: int,
+    player_col: int,
+    item_row: int,
+    item_col: int,
+    score: int,
+) -> tuple[int, int, int]:
+    """Check if the player is on the collectible.
+
+    If yes, increase the score and return the new score along with a
+    flag (1) so the caller knows to respawn the item.
+    """
+    if player_row == item_row and player_col == item_col:
+        return score + 1, 1, 1
+    return score, 0, 0
+
+
 # --- Main Game Loop ---
 if __name__ == "__main__":
     print("Welcome to the Grid Game!")
-    print("You are the '@' symbol.")
+    print("You are the '@' symbol. Collect the '*' items!")
     print("WASD to move. Type 'quit' to exit.\n")
+
+    score = 0
+    item_row, item_col = spawn_collectible(player_row, player_col)
 
     while True:
         # 1. Clear the screen so we get a clean redraw each turn
         os.system("clear")
 
         # 2. Draw the current state of the grid
-        draw_grid(player_row, player_col)
+        draw_grid(player_row, player_col, item_row, item_col, score)
 
         # 3. Wait for the player to type something
         user_input = input("\n> ").strip().lower()
@@ -73,3 +109,17 @@ if __name__ == "__main__":
 
         # 5. Process WASD movement with boundary checking
         player_row, player_col = process_move(player_row, player_col, user_input)
+
+        # 6. Check if the player collected the item
+        score, collected, _ = collect_item(
+            player_row, player_col, item_row, item_col, score
+        )
+        if collected:
+            item_row, item_col = spawn_collectible(player_row, player_col)
+
+        # 7. Check win condition
+        if score >= WIN_SCORE:
+            os.system("clear")
+            draw_grid(player_row, player_col, item_row, item_col, score)
+            print("\nYou win! All items collected!")
+            break

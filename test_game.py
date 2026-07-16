@@ -1,7 +1,14 @@
 import io
 import sys
 
-from game import draw_grid, process_move, GRID_SIZE
+from game import (
+    draw_grid,
+    process_move,
+    spawn_collectible,
+    collect_item,
+    GRID_SIZE,
+    WIN_SCORE,
+)
 
 
 # ============================================
@@ -12,26 +19,25 @@ def test_grid_size() -> None:
     """The grid should be GRID_SIZE rows tall."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0)
+    draw_grid(0, 0, 3, 3, 0)
     sys.stdout = sys.__stdout__
 
+    # Grid lines + score line + blank line = GRID_SIZE + 2
     lines = captured.getvalue().strip().split("\n")
-    assert len(lines) == GRID_SIZE
+    assert len(lines) == GRID_SIZE + 2
 
 
 def test_player_at_origin() -> None:
     """Player at (0,0) should appear in the top-left cell."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(0, 0)
+    draw_grid(0, 0, 3, 3, 0)
     sys.stdout = sys.__stdout__
 
     lines = captured.getvalue().splitlines()
-    # The first line should contain the player in the first cell
     cells = lines[0].split()
     assert cells[0] == "@"
-    # All other lines should NOT contain the player
-    for line in lines[1:]:
+    for line in lines[1:GRID_SIZE]:
         assert "@" not in line
 
 
@@ -39,14 +45,14 @@ def test_player_at_bottom_right() -> None:
     """Player at (4,4) should appear in the bottom-right cell."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(4, 4)
+    draw_grid(4, 4, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
-    lines = captured.getvalue().strip().split("\n")
-    # The last line should end with " @"
-    assert lines[-1].rstrip().endswith("@")
-    # All other lines should not contain "@"
-    for line in lines[:-1]:
+    lines = captured.getvalue().splitlines()
+    # The last grid row (index 4) should end with "@"
+    assert lines[GRID_SIZE - 1].rstrip().endswith("@")
+    # All other grid rows should not contain "@"
+    for line in lines[:GRID_SIZE - 1]:
         assert "@" not in line
 
 
@@ -54,13 +60,11 @@ def test_player_in_middle() -> None:
     """Player at (2,2) should appear in the exact centre."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(2, 2)
+    draw_grid(2, 2, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
-    lines = captured.getvalue().strip().split("\n")
-    middle_line = lines[2]
-    # The '@' should be in the third position (index 2)
-    cells = middle_line.split()
+    lines = captured.getvalue().splitlines()
+    cells = lines[2].split()
     assert cells[2] == "@"
 
 
@@ -68,11 +72,11 @@ def test_each_row_has_five_cells() -> None:
     """Every row should have exactly 5 cells separated by spaces."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(1, 3)
+    draw_grid(1, 3, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
-    lines = captured.getvalue().strip().split("\n")
-    for line in lines:
+    lines = captured.getvalue().splitlines()
+    for line in lines[:GRID_SIZE]:
         cells = line.split()
         assert len(cells) == GRID_SIZE
 
@@ -81,11 +85,47 @@ def test_only_one_player_symbol() -> None:
     """There should be exactly one '@' on the entire grid."""
     captured = io.StringIO()
     sys.stdout = captured
-    draw_grid(2, 3)
+    draw_grid(2, 3, 0, 0, 0)
     sys.stdout = sys.__stdout__
 
     full_output = captured.getvalue()
     assert full_output.count("@") == 1
+
+
+def test_collectible_drawn() -> None:
+    """The collectible '*' should appear on the grid."""
+    captured = io.StringIO()
+    sys.stdout = captured
+    draw_grid(0, 0, 2, 2, 0)
+    sys.stdout = sys.__stdout__
+
+    full_output = captured.getvalue()
+    assert full_output.count("*") == 1
+
+
+def test_score_displayed() -> None:
+    """The score should appear in the output."""
+    captured = io.StringIO()
+    sys.stdout = captured
+    draw_grid(0, 0, 3, 3, 5)
+    sys.stdout = sys.__stdout__
+
+    full_output = captured.getvalue()
+    assert f"Score: 5/{WIN_SCORE}" in full_output
+
+
+def test_player_overlaps_collectible() -> None:
+    """If player and collectible share a cell, player takes priority."""
+    captured = io.StringIO()
+    sys.stdout = captured
+    draw_grid(2, 2, 2, 2, 0)
+    sys.stdout = sys.__stdout__
+
+    lines = captured.getvalue().splitlines()
+    cells = lines[2].split()
+    assert cells[2] == "@"
+    # Only one symbol total — no '*' visible
+    assert "*" not in captured.getvalue()
 
 
 # ============================================
@@ -152,3 +192,79 @@ def test_empty_input_does_nothing() -> None:
     """An empty string should leave the position unchanged."""
     row, col = process_move(2, 2, "")
     assert (row, col) == (2, 2)
+
+
+# ============================================
+# Tests for spawn_collectible()
+# ============================================
+
+def test_spawn_not_on_player() -> None:
+    """The collectible should never spawn on the player."""
+    for _ in range(50):
+        row, col = spawn_collectible(2, 2)
+        assert (row, col) != (2, 2)
+
+
+def test_spawn_within_grid() -> None:
+    """The collectible should always be within grid bounds."""
+    for _ in range(50):
+        row, col = spawn_collectible(0, 0)
+        assert 0 <= row < GRID_SIZE
+        assert 0 <= col < GRID_SIZE
+
+
+def test_spawn_at_various_positions() -> None:
+    """Spawn should be able to reach different positions over many calls."""
+    seen = set()
+    for _ in range(200):
+        row, col = spawn_collectible(4, 4)
+        seen.add((row, col))
+    # With enough calls, most cells should have been reached
+    assert len(seen) > 1
+
+
+# ============================================
+# Tests for collect_item()
+# ============================================
+
+def test_collect_increases_score() -> None:
+    """Collecting an item should increase the score by 1."""
+    score, collected, _ = collect_item(2, 2, 2, 2, 5)
+    assert score == 6
+    assert collected == 1
+
+
+def test_collect_returns_flag() -> None:
+    """Collecting should return a collected flag of 1."""
+    _, collected, flag = collect_item(2, 2, 2, 2, 0)
+    assert collected == 1
+    assert flag == 1
+
+
+def test_no_collect() -> None:
+    """Not standing on the item should not change the score."""
+    score, collected, _ = collect_item(0, 0, 2, 2, 5)
+    assert score == 5
+    assert collected == 0
+
+
+def test_no_collect_returns_zero_flag() -> None:
+    """Not collecting should return a flag of 0."""
+    _, collected, flag = collect_item(0, 0, 2, 2, 0)
+    assert collected == 0
+    assert flag == 0
+
+
+def test_collect_at_origin() -> None:
+    """Should collect when player and item are both at (0,0)."""
+    score, collected, _ = collect_item(0, 0, 0, 0, 0)
+    assert score == 1
+    assert collected == 1
+
+
+def test_collect_at_bottom_right() -> None:
+    """Should collect when both are at the bottom-right corner."""
+    last = GRID_SIZE - 1
+    score, collected, _ = collect_item(last, last, last, last, 9)
+    assert score == 10
+    assert collected == 1
