@@ -1,6 +1,8 @@
 import os
 import random
 
+from sounds import SoundEngine
+
 # ============================================
 # Treasure Hunter Quest
 # ============================================
@@ -8,6 +10,9 @@ import random
 # --- Constants ---
 GRID_SIZE = 5
 WIN_SCORE = 10
+
+# --- Sound engine (initialised once, reused throughout) ---
+sound = SoundEngine()
 
 # --- Theme ---
 GAME_NAME = "Treasure Hunter Quest"
@@ -140,6 +145,9 @@ if __name__ == "__main__":
             player_row, player_col, item_row, item_col
         )
 
+        # Start background music
+        sound.play_bgm()
+
         game_over = False
 
         while not game_over:
@@ -161,12 +169,18 @@ if __name__ == "__main__":
             if user_input == "quit":
                 playing = False
                 game_over = True
+                sound.stop_bgm()
                 break
 
             # 5. Process WASD movement with boundary checking
-            player_row, player_col = process_move(
+            new_row, new_col = process_move(
                 player_row, player_col, user_input
             )
+
+            # Only play move sound if the player actually moved
+            if (new_row, new_col) != (player_row, player_col):
+                sound.play_move()
+            player_row, player_col = new_row, new_col
 
             # 6. Check if the player hit the hazard
             if player_row == hazard_row and player_col == hazard_col:
@@ -177,6 +191,7 @@ if __name__ == "__main__":
                     hazard_row, hazard_col,
                     score,
                 )
+                sound.play_hazard()
                 print(f"\n{LOSE_MESSAGE}")
                 game_over = True
                 break
@@ -186,6 +201,7 @@ if __name__ == "__main__":
                 player_row, player_col, item_row, item_col, score
             )
             if collected:
+                sound.play_collect()
                 item_row, item_col = spawn_collectible(
                     player_row, player_col
                 )
@@ -199,6 +215,7 @@ if __name__ == "__main__":
                     hazard_row, hazard_col,
                     score,
                 )
+                sound.play_win()
                 print(f"\n{WIN_MESSAGE}")
                 game_over = True
                 break
@@ -209,4 +226,5 @@ if __name__ == "__main__":
             if answer != "y":
                 playing = False
 
+    sound.stop_bgm()
     print("Thanks for playing!")
